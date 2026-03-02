@@ -2,6 +2,7 @@ import type { ToolDefinition } from "./registry.js";
 import type { ToolContext } from "./context.js";
 import type { Platform } from "../device-manager.js";
 import { parseUiHierarchy, findByText, findByResourceId } from "../adb/ui-parser.js";
+import { ElementNotFoundError } from "../errors.js";
 
 export const interactionTools: ToolDefinition[] = [
   {
@@ -40,7 +41,7 @@ export const interactionTools: ToolDefinition[] = [
           await iosClient.tapElement(element.ELEMENT);
           return { text: `Tapped element: ${args.label || args.text}` };
         } catch (error: any) {
-          return { text: `Element not found: ${args.label || args.text}\n${error.message}` };
+          throw new ElementNotFoundError(String(args.label || args.text));
         }
       }
 
@@ -75,7 +76,7 @@ export const interactionTools: ToolDefinition[] = [
         }
 
         if (found.length === 0) {
-          return { text: `Element not found: ${args.text || args.resourceId}` };
+          throw new ElementNotFoundError(String(args.text || args.resourceId));
         }
 
         const clickable = found.filter(el => el.clickable);
@@ -153,7 +154,7 @@ export const interactionTools: ToolDefinition[] = [
         }
 
         if (found.length === 0) {
-          return { text: `Element not found: ${args.text || args.resourceId}` };
+          throw new ElementNotFoundError(String(args.text || args.resourceId));
         }
 
         const clickable = found.filter(el => el.clickable);
@@ -202,7 +203,7 @@ export const interactionTools: ToolDefinition[] = [
         ctx.setCachedElements("android", elements);
         const found = findByText(elements, args.text as string);
         if (found.length === 0) {
-          return { text: `Element not found: ${args.text}` };
+          throw new ElementNotFoundError(String(args.text));
         }
         x = found[0].centerX;
         y = found[0].centerY;

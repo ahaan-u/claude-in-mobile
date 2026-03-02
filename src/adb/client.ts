@@ -108,7 +108,7 @@ export class AdbClient {
    * Get list of connected devices
    */
   getDevices(): Device[] {
-    const output = execSync("adb devices -l", { encoding: "utf-8" });
+    const output = execSync("adb devices -l", { encoding: "utf-8", timeout: EXEC_TIMEOUT_MS });
     const lines = output.split("\n").slice(1); // Skip header
 
     return lines

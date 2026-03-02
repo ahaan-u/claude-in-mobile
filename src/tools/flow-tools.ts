@@ -14,6 +14,7 @@ const FLOW_ALLOWED_ACTIONS = new Set([
 ]);
 
 const FLOW_MAX_STEPS = 20;
+const BATCH_MAX_COMMANDS = 50;
 const FLOW_MAX_DURATION = 60000;
 const FLOW_MAX_REPEAT = 10;
 
@@ -80,6 +81,10 @@ export const flowTools: ToolDefinition[] = [
 
       if (!commands || commands.length === 0) {
         return { text: "No commands provided" };
+      }
+
+      if (commands.length > BATCH_MAX_COMMANDS) {
+        return { text: `Too many commands (${commands.length}). Maximum is ${BATCH_MAX_COMMANDS}.` };
       }
 
       const results: Array<{ command: string; success: boolean; result: string }> = [];
@@ -190,7 +195,7 @@ export const flowTools: ToolDefinition[] = [
         }
 
         const step = steps[i];
-        const stepArgs = { ...step.args, platform: currentPlatform } as Record<string, unknown>;
+        const stepArgs = { platform: currentPlatform, ...step.args } as Record<string, unknown>;
         const onError = step.on_error ?? "stop";
 
         const repeatTimes = step.repeat?.times ? Math.min(step.repeat.times, FLOW_MAX_REPEAT) : 1;
@@ -284,6 +289,7 @@ export const flowTools: ToolDefinition[] = [
 
             if (onError === "retry" && iter < maxIterations - 1) {
               await new Promise(resolve => setTimeout(resolve, 300));
+              if (Date.now() - flowStart > maxDuration) break;
               continue;
             }
 

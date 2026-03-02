@@ -196,8 +196,8 @@ export const screenshotTools: ToolDefinition[] = [
     handler: async (args, ctx) => {
       const platform = args.platform as Platform | undefined;
       const currentPlat = platform ?? ctx.deviceManager.getCurrentPlatform();
-      if (currentPlat === "desktop") {
-        return { text: "annotate_screenshot is not supported for desktop platform. Use screenshot + get_ui instead." };
+      if (currentPlat === "desktop" || currentPlat === "aurora") {
+        return { text: `annotate_screenshot is not supported for ${currentPlat} platform. Use screenshot + get_ui instead.` };
       }
 
       const pngBuffer = await ctx.deviceManager.getScreenshotBufferAsync(currentPlat);

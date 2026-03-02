@@ -12,7 +12,6 @@ import {
   desktopHierarchyToUiElements,
   UiElement,
 } from "../adb/ui-parser.js";
-import { desktopClient } from "../desktop/client.js";
 import { DeviceNotFoundError, DeviceOfflineError, AdbNotInstalledError } from "../errors.js";
 
 export const uiTools: ToolDefinition[] = [
@@ -214,7 +213,7 @@ export const uiTools: ToolDefinition[] = [
         return { text: "Missing required parameter: pid. Use get_window_info to find the process ID." };
       }
 
-      const result = await desktopClient.tapByText(text, pid, exactMatch);
+      const result = await ctx.deviceManager.getDesktopClient().tapByText(text, pid, exactMatch);
 
       if (result.success) {
         return {

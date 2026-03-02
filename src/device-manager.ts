@@ -40,6 +40,7 @@ export class DeviceManager {
   private adapters: Map<Platform, PlatformAdapter>;
   private activeDevice?: Device;
   private activeTarget: Platform = "android";
+  private webViewInspector?: WebViewInspector;
 
   constructor() {
     const androidDeviceId = process.env.DEVICE_ID ?? process.env.ANDROID_SERIAL ?? undefined;
@@ -139,6 +140,12 @@ export class DeviceManager {
 
   async stopDesktopApp(): Promise<void> {
     await this.desktopAdapter.stop();
+  }
+
+  async cleanup(): Promise<void> {
+    try { await this.desktopAdapter.stop(); } catch {}
+    try { this.iosAdapter.getClient().cleanup(); } catch {}
+    try { this.webViewInspector?.cleanup(); } catch {}
   }
 
   getDesktopClient(): DesktopClient {
@@ -370,7 +377,10 @@ export class DeviceManager {
   }
 
   getWebViewInspector(): WebViewInspector {
-    return new WebViewInspector(this.androidAdapter.getClient());
+    if (!this.webViewInspector) {
+      this.webViewInspector = new WebViewInspector(this.androidAdapter.getClient());
+    }
+    return this.webViewInspector;
   }
 
   // ============ Async screenshot helpers ============
