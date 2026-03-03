@@ -24,6 +24,11 @@ export class IosClient {
     this.deviceId = deviceId;
   }
 
+  cleanup(): void {
+    this.wdaManager.cleanup();
+    this.wdaClient = undefined;
+  }
+
   private async ensureWDA(): Promise<WDAClient> {
     if (!this.deviceId) {
       const booted = this.getBootedDevices();
@@ -104,6 +109,9 @@ export class IosClient {
    * Set active device
    */
   setDevice(deviceId: string): void {
+    if (this.deviceId !== deviceId) {
+      this.wdaClient = undefined;
+    }
     this.deviceId = deviceId;
   }
 

@@ -172,13 +172,16 @@ export class WDAManager {
       deviceId,
     });
 
+    const MAX_OUTPUT_CHARS = 50_000;
     let output = "";
-    wdaProcess.stdout?.on("data", (data) => {
+    const appendOutput = (data: Buffer) => {
       output += data.toString();
-    });
-    wdaProcess.stderr?.on("data", (data) => {
-      output += data.toString();
-    });
+      if (output.length > MAX_OUTPUT_CHARS) {
+        output = output.slice(output.length - MAX_OUTPUT_CHARS);
+      }
+    };
+    wdaProcess.stdout?.on("data", appendOutput);
+    wdaProcess.stderr?.on("data", appendOutput);
 
     wdaProcess.on("exit", (code) => {
       this.instances.delete(deviceId);

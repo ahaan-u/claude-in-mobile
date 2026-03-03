@@ -18,7 +18,7 @@ export const systemTools: ToolDefinition[] = [
       const platform = args.platform as Platform | undefined;
       const currentPlatform = platform ?? ctx.deviceManager.getCurrentPlatform();
 
-      if (currentPlatform === "ios") {
+      if (currentPlatform !== "android") {
         return { text: "get_current_activity is only available for Android." };
       }
 
@@ -52,12 +52,12 @@ export const systemTools: ToolDefinition[] = [
       inputSchema: {
         type: "object",
         properties: {
-          ms: { type: "number", description: "Duration in milliseconds", default: 1000 },
+          ms: { type: "number", description: "Duration in milliseconds (default: 1000, max: 30000)", default: 1000 },
         },
       },
     },
     handler: async (args) => {
-      const ms = (args.ms as number) ?? 1000;
+      const ms = Math.max(0, Math.min((args.ms as number) ?? 1000, 30_000));
       await new Promise(resolve => setTimeout(resolve, ms));
       return { text: `Waited ${ms}ms` };
     },
@@ -84,8 +84,10 @@ export const systemTools: ToolDefinition[] = [
 
       if (currentPlatform === "android") {
         ctx.deviceManager.getAndroidClient().shell(`am start -a android.intent.action.VIEW -d '${sanitizedUrl}'`);
-      } else {
+      } else if (currentPlatform === "ios") {
         ctx.deviceManager.getIosClient().openUrl(url);
+      } else {
+        return { text: `open_url is not supported for ${currentPlatform} platform. Supported: android, ios.` };
       }
       return { text: `Opened URL: ${url}` };
     },

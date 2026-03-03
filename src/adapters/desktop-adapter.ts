@@ -146,7 +146,9 @@ export class DesktopAdapter implements PlatformAdapter {
   }
 
   async getScreenshotBufferAsync(): Promise<Buffer> {
-    throw new Error("Use screenshot() for desktop platform");
+    this.ensureRunning();
+    const result = await this.client.screenshotWithMeta({});
+    return Buffer.from(result.base64, "base64");
   }
 
   screenshotRaw(): string {

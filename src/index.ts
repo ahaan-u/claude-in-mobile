@@ -87,7 +87,7 @@ if (initIndex !== -1) {
 const server = new Server(
   {
     name: "claude-mobile",
-    version: "2.13.0",
+    version: "2.14.0",
   },
   {
     capabilities: {
@@ -172,6 +172,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   }
 });
+
+// Graceful shutdown
+async function shutdown(signal: string): Promise<void> {
+  console.error(`MCP server received ${signal}, shutting down...`);
+  try {
+    await ctx.deviceManager.cleanup();
+  } catch (e) {
+    console.error("Cleanup error:", e);
+  }
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 // Start server
 async function main() {
