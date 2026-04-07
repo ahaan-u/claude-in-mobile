@@ -10,6 +10,7 @@ import {
 export class WDAClient {
   private baseUrl: string;
   private sessionId: string | null = null;
+  private deviceId: string | null = null;
   private readonly operationTimeout = 10000;
 
   constructor(port: number) {
@@ -17,6 +18,7 @@ export class WDAClient {
   }
 
   async ensureSession(deviceId: string): Promise<void> {
+    this.deviceId = deviceId;
     if (this.sessionId) {
       try {
         // Verify session is still valid
@@ -257,13 +259,22 @@ export class WDAClient {
     return response.value || response || false;
   }
 
+  private isInvalidSessionError(error: any): boolean {
+    const msg = error?.message?.toLowerCase() ?? "";
+    return msg.includes("invalid session id") ||
+      msg.includes("session does not exist");
+  }
+
   private async request(
     method: string,
     path: string,
-    body?: any
+    body?: any,
+    isRetry: boolean = false
   ): Promise<any> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.operationTimeout);
+    const timeout = setTimeout(
+      () => controller.abort(), this.operationTimeout
+    );
 
     try {
       const response = await fetch(`${this.baseUrl}${path}`, {
@@ -280,7 +291,8 @@ export class WDAClient {
       if (!response.ok) {
         const text = await response.text();
         throw new Error(
-          `WebDriverAgent request failed: ${response.status} ${response.statusText}\n${text}`
+          `WebDriverAgent request failed: ` +
+            `${response.status} ${response.statusText}\n${text}`
         );
       }
 
@@ -288,7 +300,8 @@ export class WDAClient {
 
       if (data.status !== undefined && data.status !== 0) {
         throw new Error(
-          `WebDriverAgent error: ${data.value?.message || JSON.stringify(data)}`
+          `WebDriverAgent error: ` +
+            `${data.value?.message || JSON.stringify(data)}`
         );
       }
 
@@ -298,8 +311,31 @@ export class WDAClient {
 
       if (error.name === "AbortError") {
         throw new Error(
-          `WebDriverAgent request timed out after ${this.operationTimeout}ms`
+          `WebDriverAgent request timed out ` +
+            `after ${this.operationTimeout}ms`
         );
+      }
+
+      // Retry once on invalid session if we have a deviceId and
+      // the request was using a session path
+      if (
+        !isRetry &&
+        this.deviceId &&
+        this.sessionId &&
+        path.includes(`/session/${this.sessionId}`) &&
+        this.isInvalidSessionError(error)
+      ) {
+        const oldSessionId = this.sessionId;
+        console.error(
+          "WDA session invalidated externally, recovering..."
+        );
+        this.sessionId = null;
+        await this.createSession(this.deviceId);
+        const newPath = path.replace(
+          `/session/${oldSessionId}`,
+          `/session/${this.sessionId}`
+        );
+        return this.request(method, newPath, body, true);
       }
 
       throw error;
